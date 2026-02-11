@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Absensi Asandi</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+    <a href="script.js"></a>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <i class="ph ph-student"></i>
+            <span>Absensi RFF707</span>
+        </div>
+        <ul class="nav-links">
+            <!-- Locked Menu: Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link" onclick="attemptAccess('dashboard')">
+                    <div class="nav-content"><i class="ph ph-squares-four"></i><span>Dashboard</span></div>
+                    <i class="ph ph-lock-key lock-icon"></i>
+                </a>
+            </li>
+            
+            <!-- Public Menu: Isi Absensi -->
+            <li class="nav-item">
+                <a class="nav-link active" onclick="switchTab('absensi')">
+                    <div class="nav-content"><i class="ph ph-pencil-simple"></i><span>Isi Absensi</span></div>
+                </a>
+            </li>
+            
+            <!-- Locked Menu: Data Absensi (DIUBAH JADI TERKUNCI) -->
+            <li class="nav-item">
+                <a class="nav-link" onclick="attemptAccess('data')">
+                    <div class="nav-content"><i class="ph ph-table"></i><span>Data Absensi</span></div>
+                    <i class="ph ph-lock-key lock-icon"></i>
+                </a>
+            </li>
+
+            <!-- Locked Menu: Settings -->
+            <li class="nav-item" style="margin-top: auto;">
+                <a class="nav-link" onclick="attemptAccess('settings')">
+                    <div class="nav-content"><i class="ph ph-gear"></i><span>Pengaturan DB</span></div>
+                    <i class="ph ph-lock-key lock-icon"></i>
+                </a>
+            </li>
+        </ul>
+        <div class="user-profile">
+            <div class="avatar">A</div>
+            <div><div style="font-weight: 600; font-size: 0.9rem;">Admin</div><div style="font-size: 0.75rem; color: var(--text-muted);">Sistem Sekolah</div></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header>
+            <div class="header-title">
+                <i class="ph ph-list mobile-toggle" onclick="toggleSidebar()"></i>
+                <h2 id="page-title">Isi Absensi</h2>
+            </div>
+            <div class="datetime-container">
+                <i class="ph ph-calendar-blank" style="font-size: 1.2rem; color: var(--text-muted);"></i>
+                <span class="date-display" id="current-date">Senin, 1 Jan 2024</span>
+                <span style="color: var(--border);">|</span>
+                <i class="ph ph-clock" style="font-size: 1.2rem; color: var(--primary);"></i>
+                <span class="time-display" id="real-time-clock">00:00:00</span>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section">
+            <div style="background: #eef2ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--primary);">
+                <h4 style="color: var(--primary);">Dashboard Admin</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Selamat datang di panel kontrol sistem absensi.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-icon icon-present"><i class="ph ph-check-circle"></i></div><div class="stat-info"><h3 id="count-hadir">0</h3><p>Hadir Tepat Waktu</p></div></div>
+                <div class="stat-card"><div class="stat-icon icon-late"><i class="ph ph-clock"></i></div><div class="stat-info"><h3 id="count-terlambat">0</h3><p>Terlambat</p></div></div>
+                <div class="stat-card"><div class="stat-icon icon-absent"><i class="ph ph-x-circle"></i></div><div class="stat-info"><h3 id="count-tidak-hadir">0</h3><p>Izin / Sakit</p></div></div>
+                <div class="stat-card"><div class="stat-icon icon-student"><i class="ph ph-users"></i></div><div class="stat-info"><h3 id="total-siswa">0</h3><p>Total Data</p></div></div>
+            </div>
+            <h3>Aktivitas Terbaru</h3>
+            <div class="table-container" style="margin-top: 1rem;"><table><thead><tr><th>Waktu</th><th>Nama Siswa</th><th>Kelas</th><th>Status</th></tr></thead><tbody id="recent-activity-body"></tbody></table></div>
+        </section>
+
+        <!-- Form Absensi Section -->
+        <section id="absensi" class="section active">
+            <div class="form-container">
+                <h3 style="margin-bottom: 1.5rem; text-align: center; color: var(--primary);">Form Absensi Siswa</h3>
+                <form id="attendanceForm" onsubmit="handleAttendanceSubmit(event)">
+                    <div class="form-group"><label class="form-label">Nama Lengkap Siswa</label><input type="text" id="input-name" class="form-control" placeholder="Contoh: Budi Santoso" required></div>
+                    <div class="form-group"><label class="form-label">Kelas</label><select id="input-class" class="form-control" required>
+                        <option value="" disabled selected>Pilih Kelas</option>
+                        <option value="X-TKJ">X-TKJ</option>
+                        <option value="XI-TKJ">XI-TKJ</option>
+                    </select></div>
+                    <div class="form-group"><label class="form-label">Status Kehadiran</label><select id="input-status" class="form-control" required onchange="toggleReasonField()"><option value="Hadir">Hadir</option><option value="Terlambat">Terlambat</option><option value="Izin">Izin</option><option value="Sakit">Sakit</option></select></div>
+                    <div class="form-group" id="reason-group" style="display: none;"><label class="form-label">Keterangan (Opsional)</label><textarea id="input-reason" class="form-control" rows="3" placeholder="Alasan izin/sakit..."></textarea></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="ph ph-paper-plane-right"></i> Kirim Absensi</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Data Section -->
+        <section id="data" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Rekap Data</h3>
+                <button class="btn btn-secondary" onclick="exportData()"><i class="ph ph-download-simple"></i> Export CSV</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th><th>Waktu</th><th>Nama Siswa</th><th>Kelas</th><th>Status</th><th style="text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="full-data-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="section">
+            <div class="form-container" style="max-width: 800px;">
+                <h3 style="margin-bottom: 0.5rem;">Pengaturan Database Asandi</h3>
+                <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Konfigurasi koneksi ke Google Sheet.</p>
+                <div class="form-group"><label class="form-label">Google Apps Script Web App URL</label><input type="text" id="gas-url" class="form-control" placeholder="https://script.google.com/macros/s/..."></div>
+                <div class="form-group"><label class="form-label">Nama Sheet Target</label><input type="text" id="sheet-name" class="form-control" placeholder="DataAbsensi" value="DataAbsensi"></div>
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #0c4a6e; margin-bottom: 1.5rem; border: 1px solid #bae6fd;"><strong>Info:</strong> Masukkan URL Web App dari Google Apps Script di sini untuk sinkronisasi data otomatis (Tambah & Hapus).</div>
+                <button class="btn btn-primary" onclick="saveSettings()">Simpan Pengaturan</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"><i class="ph ph-lock-key"></i></div>
+            <h3 style="margin-bottom: 0.5rem;">Akses Terkunci</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Masukkan kata sandi admin untuk melanjutkan.</p>
+            <div class="form-group"><input type="password" id="admin-pass-input" class="form-control" placeholder="Password..." style="text-align: center; font-size: 1.2rem; letter-spacing: 2px;"></div>
+            <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" style="flex: 1;" onclick="closeLoginModal()">Batal</button><button class="btn btn-primary" style="flex: 1;" onclick="verifyLogin()">Login</button></div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon-warning"><i class="ph ph-warning"></i></div>
+            <h3 style="margin-bottom: 0.5rem;">Hapus Data?</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Anda yakin ingin menghapus data absensi ini? Tindakan ini tidak dapat dibatalkan dan akan menghapus data dari Google Sheet.</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteModal()">Batal</button>
+                <button class="btn btn-danger" style="flex: 1;" onclick="executeDelete()">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
